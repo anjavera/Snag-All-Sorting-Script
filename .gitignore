@@ -1,0 +1,6 @@
+# Local / editor cruft
+*.user
+*.tmp
+Thumbs.db
+desktop.ini
+.vs/
