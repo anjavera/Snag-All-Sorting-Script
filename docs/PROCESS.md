@@ -96,10 +96,93 @@ locate ──► read ──► design ──► build ──► test ──► 
 - **ML / embeddings**: would add large downloads and make decisions hard to explain;
   weighted phrase signals cover the stated use case and are inspectable.
 
-## Known limits / next ideas
+---
 
-- Windows: folders redirected to OneDrive are not detected (uses `%USERPROFILE%\Documents`).
-- Legacy `.doc` / `.xls` / `.ppt` (binary Office) are sorted by type and date, but their contents aren't read.
-- Scanned PDFs without a text layer contribute only metadata and file name (no OCR).
-- Ideas: pictures grouped into events by time gaps / GPS; a GUI or tray button;
-  reading from Google Drive via its connector.
+# Phase 2 (v2.1): limits, privacy, safety, assistant mode
+
+## Goals
+
+1. Close the v2.0 known limits.
+2. **Script first, assistant second**: for complicated folders, Claude runs the script,
+   then sorts only what the script couldn't place.
+3. **Privacy question up front**: the user decides what Claude may see and what is left
+   alone (types, folders, Google Drive / OneDrive / Dropbox / iCloud).
+4. **Malicious files**: decide what the script should detect and what an LLM should (or shouldn't) do.
+
+## Design decision: who does what
+
+| Job | Who | Why |
+| --- | --- | --- |
+| Dates, types, patterns, duplicates | Script | Deterministic, offline, fast, free |
+| Privacy enforcement | **Script** | A rule the LLM *should* follow is weaker than one the CLI *can't break*: excluded files are never opened and are reported only as counts; sensitive files get no metadata in JSON; the cloud is refused without a flag |
+| Malware tripwires | **Script** | Static byte/name checks need no LLM, work offline, and run *before* any parser touches the file |
+| Explaining a flag, hash lookup, next steps | Assistant | Judgment and plain-language explanation; VirusTotal lookup by **hash only**, with consent |
+| Executing a suspicious file "in a sandbox" | **Nobody here** | No local sandbox an assistant can drive is 99.99% safe, and detonation isn't an organizer's job. The skill sends the user to purpose-built services (VirusTotal / Hybrid Analysis, uploaded by the user after a privacy warning) or Windows Sandbox for experts |
+| Leftovers (ambiguous names, unknown types, scans) | Assistant | Needs semantic judgment; proposes folders as JSON, which the CLI validates (known roots only, sanitized names, flagged files can't be overridden) and applies with the same preview/undo guarantees |
+
+The assistant **never moves files itself**: every move goes through `organize`, so
+"never overwrite" and `--undo` hold in assistant mode too.
+
+## Packaging: plugin + skill (not an MCP connector)
+
+- **Skill** (`skills/organize-files/SKILL.md`): the workflow is mostly *instructions*
+  (ask privacy questions → preview → triage → leftovers → approve → apply). That's what
+  skills are for, and it costs nothing until it's invoked.
+- **Plugin** (`.claude-plugin/`): makes the skill installable in one line
+  (`/plugin install file-organizer --marketplace anjavera/win-downloads-sorter`); the repo
+  is its own marketplace. Validated with `claude plugin validate` (manifest, icon, README install line).
+- **Not an MCP connector (yet)**: Claude Code already has a shell to run the CLI, so a
+  server would add a process to run, with nothing gained. An MCP server becomes worth it
+  for chat apps without a shell (Claude Desktop chat); it's listed below as a next step.
+- **Not a Google Drive/OneDrive connector**: cloud folders are deliberately *off* by
+  default. Organizing cloud storage remotely is a different product with different risks.
+
+## What was built
+
+| Area | Change |
+| --- | --- |
+| Known limits | Windows folder locations read from the registry (follows OneDrive redirection); legacy `.doc/.xls/.ppt` metadata via `olefile`, plus `.doc` body text (UTF-16 run extraction, tested on a LibreOffice-made Word 97 file); optional OCR extra (`pypdfium2` + Tesseract) for scanned PDFs; photo-burst days (5+ photos) get their own folder |
+| Privacy | `--exclude`, `--skip-type`, cloud-sync detection (OneDrive/Google Drive/Dropbox/iCloud/Box/pCloud/MEGA/Nextcloud, macOS CloudStorage), `--include-cloud`, `--allow-cloud`, sensitive-file tagging (tax, IDs, bank, medical, keys), `--json-detail names\|metadata` |
+| Safety (`safety.py`) | Disguised programs (magic bytes), double extensions, right-to-left name tricks, padded names, script-host/shortcut types, small ISO/IMG/VHD and OneNote files, Office macros (OOXML and OLE), remote-template injection, PDF launch actions / auto-run JavaScript / embedded programs, encrypted archives and lure archives, SVG scripts, phishing pages with password forms; download origin (Windows Mark-of-the-Web, macOS `mdls`, Linux xattr); SHA-256 for hash lookups; batched local AV (`--av`: Defender / ClamAV); flagged files go to `Needs Review` with execute permission removed (restored by undo) |
+| Assistant hooks | `--json` now marks `leftover`, `sensitive`, `unsafe`, `sha256`, `origin`, `withheld` counts; `--overrides` applies approved placements through all the usual safeguards |
+
+## How false alarms were tuned out
+
+A security flag nobody trusts is worse than none, so every rule was tested against benign lookalikes:
+
+1. **Code review** (`code-review` skill, high) found 10 issues, 7 of them false positives:
+   fillable tax/school PDFs (calculation JavaScript), e-invoices (embedded XML), WebP saved
+   as `.jpg`, `.js`/`.ps1` code files, Linux `.run`/`.bin` installers, a clamscan run per
+   file, and others. All 10 fixed, with regression tests.
+2. **Real-data dry run**: the preview on the real `~/Downloads` still flagged 4 harmless
+   files (two web-code zips with `.js` inside, the Ubuntu and OPNsense ISOs). Rules were
+   narrowed to what attacks actually look like: script-host/shortcut files or disguised
+   names inside archives, and *small* disk images. Result: **0 false positives** on real data.
+3. A `.xls` that was really tab-separated text (a website "export to Excel") showed that
+   extension/content mismatches are usually sloppiness, so only a *program* in disguise is flagged.
+
+## Verification
+
+- 38 tests (pytest) on Python 3.10 and 3.14: malware heuristics *and* benign lookalikes,
+  privacy (exclude, skip-type, cloud source/subfolder/destination, withheld counts,
+  sensitive redaction), overrides validation, the full assistant round trip through the
+  CLI (preview → JSON → overrides → apply → undo), permission restore on undo, legacy `.doc`.
+- `claude plugin validate .`: passes.
+- Not verified end-to-end here: OCR (Tesseract isn't installed on this machine;
+  the code path is guarded and optional), Windows registry / Defender, macOS `mdls` (no
+  Windows/macOS machine in this session).
+
+## Capabilities used in phase 2
+
+`gh` (push, PR #1), PR status tool, `uv` (multi-version testing), pytest, LibreOffice
+(headless, to generate a real Word 97 fixture), `olefile`, `code-review` skill (high),
+`claude plugin validate`, existing installed plugins as format references (instead of
+recalling the manifest schema), session scratchpad for real-data previews (only counts
+were read, no file names or contents).
+
+## Remaining ideas
+
+- MCP server wrapping the CLI for chat apps without a shell (Claude Desktop chat).
+- A small GUI / tray button for non-terminal users.
+- Photo events across midnight / by GPS place names (needs an offline geocoder to stay private).
+- Real Word piece-table parsing for non-ASCII `.doc` text.
