@@ -179,6 +179,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.av and not antivirus_available():
         print("No local antivirus found (Defender on Windows, or install ClamAV); continuing without --av.")
+        args.av = False
     overrides = None
     if args.overrides:
         try:
