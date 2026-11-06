@@ -1,0 +1,20 @@
+{
+  "name": "snag-all",
+  "description": "Organize messy folders: a local script sorts by date, type, metadata and recurring patterns; Claude sorts the leftovers within your privacy choices and sets aside possibly-malicious files.",
+  "version": "2.1.0",
+  "author": {
+    "name": "anjavera",
+    "email": "anthony.talavera3@icloud.com"
+  },
+  "homepage": "https://github.com/anjavera/Snag-All-Sorting-Script",
+  "repository": "https://github.com/anjavera/Snag-All-Sorting-Script",
+  "license": "MIT",
+  "keywords": [
+    "files",
+    "organize",
+    "downloads",
+    "privacy",
+    "malware"
+  ],
+  "icon": "icons/organize-cut.png"
+}

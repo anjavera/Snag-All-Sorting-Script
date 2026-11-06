@@ -4,3 +4,11 @@
 Thumbs.db
 desktop.ini
 .vs/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+dist/
+*.egg-info/
