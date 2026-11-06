@@ -215,25 +215,55 @@ def antivirus(paths: list[Path]) -> tuple[dict[Path, Finding], list[Path]]:
             elif r.returncode != 0:
                 unscanned.append(p)
     elif shutil.which("clamscan"):
-        for i in range(0, len(paths), AV_BATCH):
-            batch = paths[i:i + AV_BATCH]
+        # Batch for speed (clamscan reloads its signature DB per run), but never trust a
+        # batch result we can't attribute exactly: then rescan file by file and go by exit codes.
+        odd = [p for p in paths if any(ord(c) < 32 for c in str(p))]  # names that break line parsing
+        normal = [p for p in paths if p not in odd]
+        for i in range(0, len(normal), AV_BATCH):
+            batch = normal[i:i + AV_BATCH]
             by_name = {str(p): p for p in batch}
             try:
                 r = subprocess.run(["clamscan", "--no-summary", "--infected", *by_name],
                                    capture_output=True, text=True, timeout=1800)
             except (OSError, subprocess.SubprocessError):
-                unscanned += batch
+                odd += batch
                 continue
-            for line in r.stdout.splitlines():
+            found = [l for l in r.stdout.splitlines() if l.endswith(" FOUND")]
+            batch_hits = {}
+            for line in found:
                 name, _, sig = line.rpartition(": ")
-                if sig.endswith("FOUND") and name in by_name:
-                    hits[by_name[name]] = Finding(HIGH, f"ClamAV detected {sig[:-5].strip() or 'a threat'}")
-            if r.returncode not in (0, 1):  # 2 = errors: attribute them to files if possible
-                failed = [by_name[n] for n in by_name if f"{n}: " in r.stderr]
-                unscanned += failed or [p for p in batch if p not in hits]
+                if name in by_name:
+                    batch_hits[by_name[name]] = Finding(HIGH, f"ClamAV detected {sig[:-5].strip() or 'a threat'}")
+            clean_result = (r.returncode == 0 and not found) or (
+                r.returncode == 1 and found and len(batch_hits) == len(found))
+            if clean_result:
+                hits.update(batch_hits)
+            else:
+                odd += batch
+        for p in odd:
+            verdict = _clamscan_one(p)
+            if verdict is None:
+                unscanned.append(p)
+            elif verdict:
+                hits[p] = verdict
     else:
         unscanned = list(paths)
     return hits, unscanned
+
+
+def _clamscan_one(path: Path) -> Finding | bool | None:
+    """Per-file verdict from the exit code alone: Finding (infected), False (clean), None (error)."""
+    try:
+        r = subprocess.run(["clamscan", "--no-summary", "--", str(path)],
+                           capture_output=True, text=True, timeout=600)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if r.returncode == 0:
+        return False
+    if r.returncode == 1:
+        sig = r.stdout.strip().rpartition(": ")[2].removesuffix("FOUND").strip()
+        return Finding(HIGH, f"ClamAV detected {sig or 'a threat'}")
+    return None
 
 
 def antivirus_available() -> str:

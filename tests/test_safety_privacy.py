@@ -242,3 +242,26 @@ def test_antivirus_fails_closed(downloads: Path, tmp_path: Path, monkeypatch, ca
     assert main([str(downloads), "--dest", str(tmp_path / "o"), "--av", "--apply"]) == 1
     assert "didn't complete" in capsys.readouterr().out
     assert sorted(p.name for p in downloads.iterdir()) == before
+
+
+def test_clamscan_results_never_misattributed(tmp_path: Path, monkeypatch):
+    """Ambiguous batch output (errors, unmatched FOUND lines) falls back to per-file exit codes."""
+    import subprocess as sp
+
+    from file_organizer import safety
+
+    good, bad, broken = (touch(tmp_path / n) for n in ("a.txt", "b.txt", "c.txt"))
+
+    def fake_run(cmd, **kw):
+        files = [a for a in cmd[1:] if not a.startswith("-")]
+        if len(files) > 1:  # batch: an error plus a FOUND line we can't match to a file
+            return sp.CompletedProcess(cmd, 2, stdout="weird\nname: Eicar FOUND\n", stderr="c.txt: ERROR")
+        f = files[0]
+        rc = {str(good): 0, str(bad): 1}.get(f, 2)
+        return sp.CompletedProcess(cmd, rc, stdout=f"{f}: Eicar FOUND\n" if rc == 1 else "", stderr="")
+
+    monkeypatch.setattr(safety.shutil, "which", lambda name: "/usr/bin/clamscan" if name == "clamscan" else None)
+    monkeypatch.setattr(safety.os, "name", "posix")
+    monkeypatch.setattr(safety.subprocess, "run", fake_run)
+    hits, unscanned = safety.antivirus([good, bad, broken])
+    assert list(hits) == [bad] and unscanned == [broken]

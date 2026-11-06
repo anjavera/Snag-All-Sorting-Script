@@ -163,7 +163,7 @@ A security flag nobody trusts is worse than none, so every rule was tested again
 
 ## Verification
 
-- 39 tests (pytest) on Python 3.10 and 3.14 (incl. --av failing closed): malware heuristics *and* benign lookalikes,
+- 40 tests (pytest) on Python 3.10 and 3.14 (incl. --av failing closed, and ambiguous scanner output rescanned per file): malware heuristics *and* benign lookalikes,
   privacy (exclude, skip-type, cloud source/subfolder/destination, withheld counts,
   sensitive redaction), overrides validation, the full assistant round trip through the
   CLI (preview → JSON → overrides → apply → undo), permission restore on undo, legacy `.doc`.
