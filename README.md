@@ -1,7 +1,7 @@
 # Snag-All Sorting Script
 
 <p align="center">
-  <img src="icons/organize-cut.png" alt="Snag-All Sorting Script icon" width="128">
+  <img src="icons/snag-all.png" alt="Snag-All Sorting Script icon" width="128">
 </p>
 
 <p align="center"><em>Created by Opus 5.5 and Anjavera</em></p>
