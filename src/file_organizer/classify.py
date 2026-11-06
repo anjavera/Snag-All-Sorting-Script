@@ -22,7 +22,7 @@ CATEGORIES: dict[str, tuple[str, ...]] = {
     "Audio": (".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg", ".opus", ".wma", ".aiff", ".mid", ".midi"),
     "Archives": (".zip", ".rar", ".7z", ".tar", ".gz", ".tgz", ".bz2", ".xz", ".zst", ".iso"),
     "Installers": (".exe", ".msi", ".msix", ".dmg", ".pkg", ".deb", ".rpm", ".appimage", ".apk",
-                   ".flatpakref", ".snap"),
+                   ".flatpakref", ".snap", ".run"),
     "Code": (".py", ".js", ".ts", ".html", ".css", ".json", ".xml", ".yml", ".yaml", ".sh", ".ps1",
              ".bat", ".ipynb", ".c", ".cpp", ".h", ".java", ".go", ".rs", ".sql", ".toml"),
     "Fonts": (".ttf", ".otf", ".woff", ".woff2"),

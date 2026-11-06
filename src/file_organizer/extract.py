@@ -9,6 +9,7 @@ from __future__ import annotations
 import csv
 import io
 import re
+import shutil
 import zipfile
 from collections import Counter
 from dataclasses import dataclass, field
@@ -265,6 +266,12 @@ def _pdf(path: Path) -> Meta:
             if not re.fullmatch(r"(page )?\d+( of \d+)?", line, re.I):
                 edges[line] += 1
     meta.headers = [l for l, n in edges.items() if n >= 2]
+    if not meta.lines and reader.pages:  # no text layer: a scan
+        try:
+            meta.lines = _ocr_first_page(path)
+        except Exception:  # OCR is a bonus; never lose the metadata already read
+            meta.lines = []
+        meta.source = "pdf+ocr" if meta.lines else "pdf"
     return meta
 
 
@@ -343,7 +350,58 @@ _ROW_DATE = re.compile(r"(?<!\d)(?:(?P<y>(?:19|20)\d\d)-(?P<m>[01]?\d)-(?P<d>[0-
                        r"|(?P<m2>[01]?\d)/(?P<d2>[0-3]?\d)/(?P<y2>(?:19|20)?\d\d))(?!\d)")
 
 
+# --- Legacy binary Office (.doc / .xls / .ppt) -------------------------------
+
+def _ole(path: Path) -> Meta:
+    meta = Meta(source="ole")
+    try:
+        import olefile
+    except ImportError:  # pragma: no cover
+        return meta
+    with olefile.OleFileIO(str(path)) as ole:
+        m = ole.get_metadata()
+        if ole.exists("WordDocument"):
+            with ole.openstream("WordDocument") as fh:
+                meta.lines = _doc_text(fh.read(MAX_XML_BYTES))
+    dec = lambda v: _clean(v.decode("cp1252", "ignore") if isinstance(v, bytes) else str(v or ""))  # noqa: E731
+    meta.title, meta.subject, meta.author = dec(m.title), dec(m.subject), dec(m.author)
+    meta.keywords = [k.strip() for k in re.split(r"[;,]", dec(m.keywords)) if k.strip()]
+    meta.software = dec(m.creating_application)
+    meta.created, meta.modified = m.create_time, m.last_saved_time
+    return meta
+
+
+def _doc_text(stream: bytes) -> list[str]:
+    """Body text of a Word 97-2003 file. Text is stored as UTF-16 (or cp1252 in old/"fast-saved"
+    files); pulling readable runs is far simpler than walking the piece table, and enough here."""
+    runs = [r.decode("utf-16-le") for r in re.findall(rb"(?:[\x20-\x7e]\x00|\r\x00){4,}", stream)]
+    if not runs:
+        runs = [r.decode("cp1252") for r in re.findall(rb"[\x20-\x7e\r]{12,}", stream) if b" " in r]
+    lines = [_clean(l) for r in runs for l in r.split("\r")]
+    return [l for l in lines if l][:MAX_LINES]
+
+
+# --- OCR for scanned PDFs (optional: pip install file-organizer[ocr] + Tesseract) ----
+
+def _ocr_first_page(path: Path) -> list[str]:
+    try:
+        import pypdfium2
+        import pytesseract
+    except ImportError:
+        return []
+    if not shutil.which("tesseract"):
+        return []
+    pdf = pypdfium2.PdfDocument(str(path))
+    try:
+        image = pdf[0].render(scale=2).to_pil()
+        text = pytesseract.image_to_string(image, timeout=30)
+    finally:
+        pdf.close()
+    return [l for l in (_clean(x) for x in text.splitlines()) if l][:MAX_LINES]
+
+
 EXTRACTORS = {
+    **dict.fromkeys((".doc", ".xls", ".ppt", ".dot", ".xlt", ".pot"), _ole),
     **dict.fromkeys((".docx", ".docm", ".dotx", ".xlsx", ".xlsm", ".pptx"), _ooxml),
     **dict.fromkeys((".odt", ".ods", ".odp"), _odf),
     ".pdf": _pdf,

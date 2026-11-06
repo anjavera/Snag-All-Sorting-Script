@@ -1,0 +1,20 @@
+{
+  "name": "file-organizer",
+  "description": "Organize messy folders: a local script sorts by date, type, metadata and recurring patterns; Claude sorts the leftovers within your privacy choices and sets aside possibly-malicious files.",
+  "version": "2.1.0",
+  "author": {
+    "name": "anjavera",
+    "email": "anthony.talavera3@icloud.com"
+  },
+  "homepage": "https://github.com/anjavera/win-downloads-sorter",
+  "repository": "https://github.com/anjavera/win-downloads-sorter",
+  "license": "MIT",
+  "keywords": [
+    "files",
+    "organize",
+    "downloads",
+    "privacy",
+    "malware"
+  ],
+  "icon": "icons/organize-cut.png"
+}

@@ -9,6 +9,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from . import safety
 from .planner import Plan
 
 
@@ -41,7 +42,12 @@ def apply(plan: Plan, log_dir: Path | None = None) -> tuple[Path, int, list[str]
             if mv.dst.exists():  # appeared since planning; never overwrite
                 raise FileExistsError(mv.dst)
             shutil.move(str(mv.src), str(mv.dst))  # keeps timestamps; works across drives
-            done.append({"src": str(mv.src), "dst": str(mv.dst)})
+            entry = {"src": str(mv.src), "dst": str(mv.dst)}
+            if mv.item is not None and mv.item.findings:
+                mode = safety.defang(mv.dst)
+                if mode is not None:
+                    entry["mode"] = mode  # restored on undo
+            done.append(entry)
             save()
         except OSError as exc:
             errors.append(f"{mv.src.name}: {exc}")
@@ -68,6 +74,8 @@ def undo(log: Path) -> tuple[int, list[str]]:
             continue
         src.parent.mkdir(parents=True, exist_ok=True)
         shutil.move(str(dst), str(src))
+        if "mode" in mv:
+            src.chmod(mv["mode"])
         restored += 1
     for d in sorted(data.get("created_dirs", []), key=len, reverse=True):
         try:

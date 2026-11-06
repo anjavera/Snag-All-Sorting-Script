@@ -1,0 +1,16 @@
+{
+  "name": "anjavera",
+  "description": "anjavera's Claude Code plugins",
+  "owner": {
+    "name": "anjavera",
+    "email": "anthony.talavera3@icloud.com"
+  },
+  "plugins": [
+    {
+      "name": "file-organizer",
+      "source": "./",
+      "description": "Script-first file organizer with an assistant pass for leftovers, privacy controls and malware triage.",
+      "version": "2.1.0"
+    }
+  ]
+}

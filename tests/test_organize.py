@@ -169,3 +169,10 @@ def test_topic_names_cannot_escape_destination():
 
     assert safe_name("..") == "Untitled"
     assert "/" not in safe_name("../../etc") and "\\\\" not in safe_name("..\\\\Windows")
+
+
+def test_legacy_word_doc_metadata_and_text():
+    from file_organizer.extract import extract
+
+    m = extract(Path(__file__).parent / "fixtures" / "vocab.doc")  # made by LibreOffice, Word 97 format
+    assert m.source == "ole" and m.lines[:2] == ["English 3", "Vocabulary list"]
