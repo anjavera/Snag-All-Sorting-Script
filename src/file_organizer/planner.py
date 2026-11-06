@@ -59,6 +59,7 @@ class Plan:
     topics: dict[str, int] = field(default_factory=dict)
     review: list[Item] = field(default_factory=list)       # flagged as possibly unsafe
     cloud_targets: dict[str, int] = field(default_factory=dict)  # sync service -> files moving into it
+    av_unscanned: list[Path] = field(default_factory=list)  # --av was asked for but couldn't check these
 
 
 class CloudSourceError(Exception):
@@ -210,7 +211,7 @@ class Privacy:
 
 
 def scan(source: Path, *, recursive: bool, exclude: list[Path], privacy: Privacy | None = None,
-         use_av: bool = False) -> tuple[list[Item], list[tuple[Path, str]]]:
+         use_av: bool = False, av_unscanned: list[Path] | None = None) -> tuple[list[Item], list[tuple[Path, str]]]:
     privacy = privacy or Privacy()
     items: list[Item] = []
     skipped: list[tuple[Path, str]] = []
@@ -268,7 +269,11 @@ def scan(source: Path, *, recursive: bool, exclude: list[Path], privacy: Privacy
             continue
         candidates.append((path, cat, st))
 
-    av_hits = safety.antivirus([p for p, _, _ in candidates]) if use_av else {}
+    av_hits: dict[Path, safety.Finding] = {}
+    if use_av:
+        av_hits, missed = safety.antivirus([p for p, _, _ in candidates])
+        if av_unscanned is not None:
+            av_unscanned += missed
     for path, cat, st in candidates:
         ext = path.suffix.lower()
         findings = safety.inspect(path)
@@ -461,9 +466,10 @@ def build_plan(source: Path, *, dest: Path | None = None, recursive: bool = Fals
     """``overrides`` maps a source file path to a folder like 'Documents/Taxes' (from an assistant)."""
     source = source.resolve()
     roots = category_roots(source, dest)
-    items, skipped = scan(source, recursive=recursive, privacy=privacy, use_av=use_av,
-                          exclude=list(roots.values()) + ([dest] if dest else []))
     plan = Plan()
+    items, skipped = scan(source, recursive=recursive, privacy=privacy, use_av=use_av,
+                          av_unscanned=plan.av_unscanned,
+                          exclude=list(roots.values()) + ([dest] if dest else []))
     plan.review = [it for it in items if it.category == REVIEW]
     dupes = find_duplicates([it if it.category != REVIEW else _NoHash(it) for it in items])
     unique = [it for i, it in enumerate(items) if i not in dupes]

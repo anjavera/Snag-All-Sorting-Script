@@ -231,3 +231,13 @@ def test_archives_and_disk_images(tmp_path: Path):
     small_iso = touch(tmp_path / "Payment.iso", b"\x00" * 1000)
     assert inspect(webapp) == [] and inspect(distro) == []
     assert inspect(lure) and inspect(small_iso)
+
+
+def test_antivirus_fails_closed(downloads: Path, tmp_path: Path, monkeypatch, capsys):
+    from file_organizer import safety
+
+    monkeypatch.setattr(safety, "antivirus", lambda paths: ({}, list(paths)))  # scanner errored
+    before = sorted(p.name for p in downloads.iterdir())
+    assert main([str(downloads), "--dest", str(tmp_path / "o"), "--av", "--apply"]) == 1
+    assert "didn't complete" in capsys.readouterr().out
+    assert sorted(p.name for p in downloads.iterdir()) == before

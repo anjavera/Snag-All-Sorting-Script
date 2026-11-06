@@ -46,6 +46,12 @@ def print_plan(plan: Plan, explain: bool) -> None:
                 print(f"        downloaded from: {it.origin}")
         print("    Don't open these until checked. To check without uploading the file, look its")
         print("    SHA-256 up on virustotal.com (organize --json shows it), or run with --av.")
+    if plan.av_unscanned:
+        print(f"\n!! The antivirus scan (--av) didn't complete for {len(plan.av_unscanned)} file(s):")
+        for p in plan.av_unscanned[:10]:
+            print(f"    {p.name}")
+        print("    Nothing will be moved while that's unresolved. Fix the scanner, or re-run")
+        print("    without --av to rely on the built-in checks only.")
     if plan.cloud_targets:
         where = ", ".join(f"{n} file(s) into {svc}" for svc, n in plan.cloud_targets.items())
         print(f"\nPrivacy: this would move {where}; they'd be uploaded to the cloud.")
@@ -204,6 +210,10 @@ def main(argv: list[str] | None = None) -> int:
     if not args.apply:
         print(f"\nPreview only: {len(plan.moves)} file(s) would move. Re-run with --apply to do it.")
         return 0
+    if plan.av_unscanned:
+        print("\nNot moving anything: the antivirus scan you asked for didn't complete (see above).",
+              file=sys.stderr)
+        return 1
     if plan.cloud_targets and not args.allow_cloud:
         print("\nNot moving anything: some destinations sync to the cloud (see above). "
               "Use --dest or --allow-cloud.", file=sys.stderr)

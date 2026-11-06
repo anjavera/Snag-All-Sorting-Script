@@ -191,29 +191,49 @@ def origin(path: Path) -> str:
     return ""
 
 
-def antivirus(paths: list[Path]) -> dict[Path, Finding]:
-    """Ask a locally installed scanner about many files at once. Never uploads anything."""
+AV_BATCH = 50  # clamscan reloads its signature DB per run: batch, but keep one failure contained
+
+
+def antivirus(paths: list[Path]) -> tuple[dict[Path, Finding], list[Path]]:
+    """Ask a locally installed scanner. Never uploads anything.
+
+    Fails closed: returns (threats found, files that could NOT be scanned). A scanner
+    error or timeout is never treated as "clean"."""
     hits: dict[Path, Finding] = {}
+    unscanned: list[Path] = []
     defender = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Windows Defender" / "MpCmdRun.exe"
-    try:
-        if os.name == "nt" and defender.exists():
-            for p in paths:  # MpCmdRun takes one file per call, but its engine is already loaded
+    if os.name == "nt" and defender.exists():
+        for p in paths:  # MpCmdRun takes one file per call; its engine is already loaded
+            try:
                 r = subprocess.run([str(defender), "-Scan", "-ScanType", "3", "-File", str(p),
                                     "-DisableRemediation"], capture_output=True, text=True, timeout=300)
-                if r.returncode == 2:
-                    hits[p] = Finding(HIGH, "Microsoft Defender detected a threat")
-        elif shutil.which("clamscan") and paths:
-            # one run: clamscan reloads its whole signature database on every start
-            r = subprocess.run(["clamscan", "--no-summary", "--infected", *map(str, paths)],
-                               capture_output=True, text=True, timeout=3600)
-            by_name = {str(p): p for p in paths}
+            except (OSError, subprocess.SubprocessError):
+                unscanned.append(p)
+                continue
+            if r.returncode == 2:
+                hits[p] = Finding(HIGH, "Microsoft Defender detected a threat")
+            elif r.returncode != 0:
+                unscanned.append(p)
+    elif shutil.which("clamscan"):
+        for i in range(0, len(paths), AV_BATCH):
+            batch = paths[i:i + AV_BATCH]
+            by_name = {str(p): p for p in batch}
+            try:
+                r = subprocess.run(["clamscan", "--no-summary", "--infected", *by_name],
+                                   capture_output=True, text=True, timeout=1800)
+            except (OSError, subprocess.SubprocessError):
+                unscanned += batch
+                continue
             for line in r.stdout.splitlines():
                 name, _, sig = line.rpartition(": ")
                 if sig.endswith("FOUND") and name in by_name:
                     hits[by_name[name]] = Finding(HIGH, f"ClamAV detected {sig[:-5].strip() or 'a threat'}")
-    except (OSError, subprocess.SubprocessError):
-        pass
-    return hits
+            if r.returncode not in (0, 1):  # 2 = errors: attribute them to files if possible
+                failed = [by_name[n] for n in by_name if f"{n}: " in r.stderr]
+                unscanned += failed or [p for p in batch if p not in hits]
+    else:
+        unscanned = list(paths)
+    return hits, unscanned
 
 
 def antivirus_available() -> str:
