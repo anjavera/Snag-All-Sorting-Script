@@ -35,6 +35,19 @@ except ImportError:
 
 MAX_LINES = 12          # body lines kept per document
 MAX_TEXT_BYTES = 64_000  # cap on plain-text reads
+MAX_XML_BYTES = 8_000_000  # cap on any one XML part inside an Office/ODF zip (zip-bomb guard)
+
+
+def _member(z: zipfile.ZipFile, name: str) -> bytes:
+    """Read a zip member, refusing to inflate more than MAX_XML_BYTES.
+
+    The declared size can be forged, so the limit is enforced on bytes actually read.
+    """
+    with z.open(name) as fh:
+        data = fh.read(MAX_XML_BYTES + 1)
+    if len(data) > MAX_XML_BYTES:
+        raise ValueError(f"{name} too large")
+    return data
 
 
 @dataclass
@@ -121,7 +134,7 @@ def _ooxml(path: Path) -> Meta:
     with zipfile.ZipFile(path) as z:
         names = set(z.namelist())
         if "docProps/core.xml" in names:
-            root = ET.fromstring(z.read("docProps/core.xml"))
+            root = ET.fromstring(_member(z, "docProps/core.xml"))
             for el in root:
                 tag, text = _local(el.tag), _clean(el.text or "")
                 if tag == "title":
@@ -137,26 +150,26 @@ def _ooxml(path: Path) -> Meta:
                 elif tag == "modified":
                     meta.modified = _parse_iso(text)
         if "docProps/app.xml" in names:
-            root = ET.fromstring(z.read("docProps/app.xml"))
+            root = ET.fromstring(_member(z, "docProps/app.xml"))
             for el in root:
                 if _local(el.tag) == "Application":
                     meta.software = _clean(el.text or "")
 
         if "word/document.xml" in names:
-            meta.lines = _paragraphs(z.read("word/document.xml"))[:MAX_LINES]
+            meta.lines = _paragraphs(_member(z, "word/document.xml"))[:MAX_LINES]
             for n in sorted(names):
                 if re.fullmatch(r"word/(header|footer)\d*\.xml", n):
-                    meta.headers += _paragraphs(z.read(n))
+                    meta.headers += _paragraphs(_member(z, n))
         elif any(n.startswith("ppt/slides/slide") for n in names):
             slides = sorted(
                 (n for n in names if re.fullmatch(r"ppt/slides/slide\d+\.xml", n)),
                 key=lambda n: int(re.search(r"\d+", n.rsplit("/", 1)[1]).group()),
             )
             for n in slides[:3]:
-                meta.lines += _paragraphs(z.read(n))
+                meta.lines += _paragraphs(_member(z, n))
             meta.lines = meta.lines[:MAX_LINES]
         elif "xl/workbook.xml" in names:
-            root = ET.fromstring(z.read("xl/workbook.xml"))
+            root = ET.fromstring(_member(z, "xl/workbook.xml"))
             sheets = [el.get("name", "") for el in root.iter() if _local(el.tag) == "sheet"]
             meta.lines = [s for s in sheets if s and not re.fullmatch(r"Sheet\d*", s)]
             meta.columns = _xlsx_first_row(z, names)
@@ -166,11 +179,11 @@ def _ooxml(path: Path) -> Meta:
 def _xlsx_first_row(z: zipfile.ZipFile, names: set[str]) -> list[str]:
     shared: list[str] = []
     if "xl/sharedStrings.xml" in names:
-        root = ET.fromstring(z.read("xl/sharedStrings.xml"))
+        root = ET.fromstring(_member(z, "xl/sharedStrings.xml"))
         shared = [_clean("".join(si.itertext())) for si in root if _local(si.tag) == "si"]
     if "xl/worksheets/sheet1.xml" not in names:
         return []
-    root = ET.fromstring(z.read("xl/worksheets/sheet1.xml"))
+    root = ET.fromstring(_member(z, "xl/worksheets/sheet1.xml"))
     for row in root.iter():
         if _local(row.tag) != "row":
             continue
@@ -193,7 +206,7 @@ def _odf(path: Path) -> Meta:
     with zipfile.ZipFile(path) as z:
         names = set(z.namelist())
         if "meta.xml" in names:
-            root = ET.fromstring(z.read("meta.xml"))
+            root = ET.fromstring(_member(z, "meta.xml"))
             for el in root.iter():
                 tag, text = _local(el.tag), _clean(el.text or "")
                 if tag == "title":
@@ -211,9 +224,9 @@ def _odf(path: Path) -> Meta:
                 elif tag == "generator":
                     meta.software = text
         if "content.xml" in names:
-            meta.lines = _paragraphs(z.read("content.xml"))[:MAX_LINES]
+            meta.lines = _paragraphs(_member(z, "content.xml"))[:MAX_LINES]
         if "styles.xml" in names:  # page headers/footers live in master styles
-            meta.headers = _paragraphs(z.read("styles.xml"))
+            meta.headers = _paragraphs(_member(z, "styles.xml"))
     return meta
 
 

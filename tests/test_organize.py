@@ -150,3 +150,22 @@ def test_screenshot_names():
     assert picture_kind(Path("Capture.PNG"), Meta()) == "Screenshots"
     assert picture_kind(Path("snippet_logo.png"), Meta()) == "Images"
     assert picture_kind(Path("Capture the Flag poster.png"), Meta()) == "Images"
+
+
+def test_zip_bomb_part_is_not_inflated(tmp_path: Path, monkeypatch):
+    import zipfile
+
+    from file_organizer import extract as ex
+
+    monkeypatch.setattr(ex, "MAX_XML_BYTES", 1000)
+    p = tmp_path / "bomb.docx"
+    with zipfile.ZipFile(p, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("word/document.xml", "<a>" + "A" * 50_000 + "</a>")
+    assert ex.extract(p).source == "error"  # skipped, not read into memory
+
+
+def test_topic_names_cannot_escape_destination():
+    from file_organizer.planner import safe_name
+
+    assert safe_name("..") == "Untitled"
+    assert "/" not in safe_name("../../etc") and "\\\\" not in safe_name("..\\\\Windows")
