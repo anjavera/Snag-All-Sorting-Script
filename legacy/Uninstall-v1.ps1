@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Removes win-downloads-sorter: deletes the Desktop and Start Menu shortcuts
+    Removes the v1 Windows downloads sorter: deletes the Desktop and Start Menu shortcuts
     and the installed program folder. Does NOT touch any files you've already
     organized.
 #>

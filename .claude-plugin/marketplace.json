@@ -7,7 +7,7 @@
   },
   "plugins": [
     {
-      "name": "file-organizer",
+      "name": "snag-all",
       "source": "./",
       "description": "Script-first file organizer with an assistant pass for leftovers, privacy controls and malware triage.",
       "version": "2.1.0"

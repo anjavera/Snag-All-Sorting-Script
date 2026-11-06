@@ -50,7 +50,7 @@ def test_preview_does_not_move(downloads: Path, tmp_path: Path, capsys):
     before = sorted(p.name for p in downloads.iterdir())
     assert main([str(downloads), "--dest", str(tmp_path / "o")]) == 0
     assert sorted(p.name for p in downloads.iterdir()) == before
-    assert "Preview only" in capsys.readouterr().out
+    assert "Nothing has moved yet" in capsys.readouterr().out
 
 
 def test_apply_then_undo_round_trip(downloads: Path, tmp_path: Path):
@@ -176,3 +176,23 @@ def test_legacy_word_doc_metadata_and_text():
 
     m = extract(Path(__file__).parent / "fixtures" / "vocab.doc")  # made by LibreOffice, Word 97 format
     assert m.source == "ole" and m.lines[:2] == ["English 3", "Vocabulary list"]
+
+
+def test_asks_before_moving_when_run_by_a_person(downloads: Path, tmp_path: Path, monkeypatch):
+    import io
+
+    from file_organizer import cli
+
+    class Tty(io.StringIO):
+        def isatty(self):
+            return True
+
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+    monkeypatch.setattr(cli.sys, "stdout", Tty())
+    monkeypatch.setattr(cli.sys, "stdin", Tty("n\n"))
+    assert main([str(downloads), "--dest", str(tmp_path / "o")]) == 0
+    assert not (tmp_path / "o").exists()  # "n" -> nothing moved
+
+    monkeypatch.setattr(cli.sys, "stdin", Tty("y\n"))
+    assert main([str(downloads), "--dest", str(tmp_path / "o")]) == 0
+    assert (tmp_path / "o" / "Documents" / "English 3").is_dir()

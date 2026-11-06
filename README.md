@@ -1,183 +1,166 @@
-# File Organizer
+# Snag-All Sorting Script
 
 <p align="center">
-  <img src="icons/organize-cut.png" alt="File Organizer icon" width="128">
+  <img src="icons/organize-cut.png" alt="Snag-All Sorting Script icon" width="128">
 </p>
 
-A **cross-platform** (Windows, macOS, Linux) organizer for a messy folder — usually
-Downloads. It doesn't just sort by extension: it reads each file's **metadata and
-contents** to put everything in **chronological order** and to spot **recurring
-patterns** worth their own folder.
+<p align="center"><em>Created by Opus 5.5 and Anjavera</em></p>
+
+**A file organizer.** It sorts a messy folder (usually Downloads) by date, by type, and by
+what's inside the files. Your "English 3" essays, notes and vocab lists end up together,
+and photos land in the month they were taken. Works on Windows, Mac and Linux.
 
 ```
-Downloads/Gatsby final.docx        ->  Documents/English 3/2024-10-12 Gatsby final.docx
-Downloads/Persuasive essay.docx    ->  Documents/English 3/Essays/2024-12-01 Persuasive essay.docx
-Downloads/Vocab list unit 2.docx   ->  Documents/English 3/Glossaries/2024-09-20 Vocab list unit 2.docx
-Downloads/ch5.docx                 ->  Documents/English 3/Notes/2024-11-01 ch5.docx
-Downloads/AP Bio Lab 1.docx        ->  Documents/AP Biology/Lab Reports/2024-09-10 AP Bio Lab 1.docx
-Downloads/chase_statement_feb.csv  ->  Documents/Spreadsheets/Chase/Statements/2025-02-01 chase_statement_feb.csv
-Downloads/lease.pdf                ->  Documents/2023/2023-03/lease.pdf
-Downloads/IMG_20230704_101500.jpg  ->  Pictures/Photos/2023/2023-07/IMG_20230704_101500.jpg
-Downloads/Screenshot 2024-02-03…   ->  Pictures/Screenshots/2024/2024-02/…
-Downloads/IMG_… (1).jpg            ->  Downloads/Duplicates/IMG_… (1).jpg   (byte-identical copy)
+Gatsby final.docx          ->  Documents/English 3/2024-10-12 Gatsby final.docx
+Persuasive essay.docx      ->  Documents/English 3/Essays/2024-12-01 Persuasive essay.docx
+Vocab list unit 2.docx     ->  Documents/English 3/Glossaries/2024-09-20 Vocab list unit 2.docx
+AP Bio Lab 1.docx          ->  Documents/AP Biology/Lab Reports/2024-09-10 AP Bio Lab 1.docx
+lease.pdf                  ->  Documents/2023/2023-03/lease.pdf
+IMG_20230704_101500.jpg    ->  Pictures/Photos/2023/2023-07/IMG_20230704_101500.jpg
+Screenshot 2024-02-03…     ->  Pictures/Screenshots/2024/2024-02/…
 ```
 
-None of the "English 3" files above had "English 3" in their file names — it was
-found in a Word **header**, an MLA heading line, or the document **title**
-property. `ENGLISH III` in one header was recognised as the same course.
+## Get started
 
-## Requirements
+1. **Download** the launcher for your computer (open the link, then click the download button ⤓):
+   - Windows: [Snag-All (Windows).bat](launchers/Snag-All%20(Windows).bat)
+   - Mac or Linux: [Snag-All (Mac or Linux).command](launchers/Snag-All%20(Mac%20or%20Linux).command)
+2. **Double-click it.** The first run takes a minute to set itself up.
+   - Windows may say "Windows protected your PC": click **More info → Run anyway**.
+   - Mac may say it can't be opened: right-click the file → **Open** → **Open**.
+3. **Look over the preview.** It lists where every file would go. Nothing has moved yet.
+4. **Type `y` and press Enter** to sort them, or just close the window to cancel.
 
-- Python 3.10+ (any OS)
-- [uv](https://docs.astral.sh/uv/) recommended (or plain `pip`)
+Changed your mind? Double-click the **Undo** launcher
+([Windows](launchers/Undo%20Snag-All%20(Windows).bat) ·
+[Mac or Linux](launchers/Undo%20Snag-All%20(Mac%20or%20Linux).command)) and everything goes back.
 
-## Install
+To sort a folder other than Downloads, on Windows drag that folder onto the launcher.
+
+## Is it safe?
+
+- **You see everything first.** Nothing moves until you say yes.
+- **One step undoes it all**: the Undo launcher, or `organize --undo`.
+- **Never deletes or overwrites a file.** If two files share a name, one becomes `name (1)`.
+- **Stays on your computer.** It doesn't upload anything, and it leaves OneDrive,
+  Google Drive, Dropbox and iCloud folders alone.
+- **Sets aside suspicious downloads** in a `Needs Review` folder without opening them.
+  This includes a "PDF" that's really a program, documents with macros, or a zip
+  hiding a shortcut. It isn't a replacement for antivirus, but it catches the
+  common tricks.
+
+## Using it from a terminal
+
+If you're comfortable with a terminal, install it once:
 
 ```bash
-uv tool install git+https://github.com/anjavera/win-downloads-sorter
+uv tool install git+https://github.com/anjavera/Snag-All-Sorting-Script
 ```
 
-or `pip install git+https://github.com/anjavera/win-downloads-sorter`. Optional extras:
-`[heic]` for iPhone photo dates, `[ocr]` to read scanned PDFs (also needs the
-[Tesseract](https://tesseract-ocr.github.io/tessdoc/Installation.html) program), e.g.
-`uv tool install "file-organizer[heic,ocr] @ git+https://github.com/anjavera/win-downloads-sorter"`.
-
-### Assistant mode (Claude Code plugin)
-
-For folders too tangled for rules alone, let Claude run the script and then sort
-what it couldn't place, within privacy limits you choose first:
-
-```
-/plugin install file-organizer --marketplace anjavera/win-downloads-sorter
-```
-
-Then ask Claude to "organize my Downloads" (or run `/organize-files`). It asks what
-it may see (just names, document details, or opening unsorted files), what to leave
-alone (cloud folders, whole types like Pictures, specific folders), and how far to
-take malware checks. Then it previews, proposes homes for the leftovers, and only
-moves anything after you approve, always through the script, so it's still undoable.
-Sensitive-looking files (tax, IDs, bank, medical, keys) are never shown to it.
-
-## Use
+(No `uv` yet? [Get it here](https://docs.astral.sh/uv/getting-started/installation/); it sets up
+Python for you. `pip install git+https://github.com/anjavera/Snag-All-Sorting-Script` also works.)
 
 ```bash
-organize                      # PREVIEW what would happen to ~/Downloads (moves nothing)
-organize --explain            # ...and say why each file goes where it goes
-organize --apply              # do it
-organize --undo               # put everything from the last run back
+organize                 # preview your Downloads, then asks before moving anything
+organize ~/Desktop       # a different folder
+organize --explain       # also say why each file goes where it goes
+organize --apply         # move without asking (for scripts)
+organize --undo          # put everything from the last run back
 ```
-
-More options:
 
 | Option | What it does |
 | --- | --- |
-| `organize ~/Desktop` | organize a different folder |
-| `--dest ~/Sorted` | put everything under one folder instead of your Documents / Pictures / Videos / Music |
-| `-r`, `--recursive` | include files in subfolders |
-| `--min-group 3` | require 3 matching files before a pattern gets a folder (default 2) |
-| `--no-date-prefix` | don't prefix grouped files with `YYYY-MM-DD` |
-| `--json plan.json` | save the plan (moves, reasons, patterns) as JSON |
-| `--event-min 5` | a day with this many photos gets its own folder (a trip, a party) |
-| `--av` | also scan with the local antivirus (Defender / ClamAV); nothing is uploaded |
+| `--dest ~/Sorted` | put everything in one folder instead of your Documents / Pictures / Videos / Music |
+| `-r` | include files inside subfolders |
+| `--exclude "Taxes*"` | never open or move matching files or folders (use as many times as you like) |
+| `--skip-type Pictures` | leave a whole kind of file alone |
+| `--include-cloud` | also sort inside OneDrive / Google Drive / Dropbox / iCloud folders |
+| `--allow-cloud` | allow moving files *into* a cloud folder (they'll be uploaded) |
+| `--av` | also check files with your antivirus (Microsoft Defender or ClamAV) |
+| `--min-group 3` | files needed before a pattern gets its own folder (default 2) |
+| `--event-min 5` | photos from one day before that day gets its own folder (default 5) |
+| `--no-date-prefix` | don't add the date to the front of grouped files' names |
+| `--json plan.json` | save the plan as JSON |
 
-Privacy options:
+Optional extras: `[heic]` reads iPhone photo dates; `[ocr]` reads scanned PDFs (also needs
+[Tesseract](https://tesseract-ocr.github.io/tessdoc/Installation.html)):
+`uv tool install "snag-all[heic,ocr] @ git+https://github.com/anjavera/Snag-All-Sorting-Script"`.
 
-| Option | What it does |
-| --- | --- |
-| `--exclude "Taxes*"` | never open or move matching files/folders (repeatable) |
-| `--skip-type Pictures` | leave a whole category alone (repeatable) |
-| `--include-cloud` | also organize inside OneDrive / Google Drive / Dropbox / iCloud folders (off by default) |
-| `--allow-cloud` | allow moving files *into* a cloud-synced folder (off by default; they'd be uploaded) |
-| `--json-detail metadata` | include titles/headers/first lines in `--json` (default: names and dates only; never for sensitive files) |
+## Let Claude sort the tricky leftovers (optional)
 
-Without `--dest`, files go to your OS's standard folders (on Linux it honours
-`~/.config/user-dirs.dirs`; on Windows it follows OneDrive-redirected folders; on
-macOS videos go to `Movies`). Types without a
-standard home (archives, installers, code, fonts, 3D models, duplicates) are
-tidied into subfolders of the source folder.
+For a really tangled folder, the AI assistant Claude can run the script and then find homes
+for the files it couldn't place. In [Claude Code](https://claude.com/claude-code):
+
+```
+/plugin install snag-all --marketplace anjavera/Snag-All-Sorting-Script
+```
+
+Then ask it to "organize my Downloads". Before it looks at anything, it asks:
+- what it may see: just file names, document details, or opening unsorted files
+- what to leave alone: cloud folders, whole kinds of files, specific folders
+- how far to take malware checks
+
+It shows you its suggestions and only moves files after you approve, using the same preview
+and undo. Files that look private (taxes, IDs, bank, medical, passwords) are never shown to it.
 
 ## How it decides
 
-1. **Safety first** — every file is checked *before* it's parsed (see below);
-   anything suspicious goes to `Needs Review/` and isn't organized.
-2. **Type** — by extension into Documents, Spreadsheets, Presentations, Ebooks,
-   Pictures, Videos, Audio, Archives, Installers, Code, Fonts, 3D Models.
-   Unknown types, half-finished downloads (`.crdownload`, `.part`…) and files
-   touched in the last 30 s are left alone.
-3. **Date** — the date the *content* was made, not when it was downloaded:
-   EXIF capture time → document creation date (DOCX/XLSX/PPTX/ODF/PDF and legacy
-   DOC/XLS/PPT) → date in
-   the filename (`IMG_20240512_…`, `Screenshot 2024-05-12 at…`) → latest date in a
-   CSV's rows → document modified date → filesystem timestamp.
-4. **Patterns** — every document contributes weighted phrases from its header /
-   footer (strongest), title / subject / keywords, opening lines, and file name.
-   A phrase shared by enough files becomes a topic folder. Course-like phrases
-   (`English 3`, `AP Biology`, `MATH 101`, `Chem II`) get a boost; the most
-   specific phrase wins (`English 3` over `English`); phrases on nearly every
-   file and the documents' author name are ignored.
-5. **Document type inside a topic** — Essays, Glossaries, Notes, Study Guides,
-   Quizzes & Tests, Worksheets, Lab Reports, Syllabus, Rubrics, Projects,
-   Assignments, Invoices, Receipts, Statements, Resumes, Contracts… Files that
-   match none are split again by any further recurring phrase (`Unit 2`,
-   `Chapter 5`).
-6. **Spreadsheets** with identical column headers (repeat exports) are grouped together.
-7. **Pictures** — by kind (Photos with camera EXIF, Screenshots, RAW, GIFs,
-   Graphics, other Images), then `YYYY/YYYY-MM`; a day with 5+ photos gets its own
-   `YYYY-MM-DD` folder.
-8. **Duplicates** — byte-identical copies (SHA-256) go to `Duplicates/`.
+1. **Safety first.** Every file is checked before it's read; anything suspicious goes
+   to `Needs Review`.
+2. **Type**: Documents, Spreadsheets, Presentations, Ebooks, Pictures, Videos, Audio,
+   Archives, Installers, Code, Fonts, 3D Models. Unknown types and half-finished
+   downloads are left alone.
+3. **Date**: when the content was made, not when you downloaded it. It uses the photo's
+   camera date, the document's creation date (Word, Excel, PowerPoint, LibreOffice, PDF,
+   including old `.doc`/`.xls`/`.ppt`), a date in the file name, dates inside a CSV, or
+   the file's own date, in that order.
+4. **Patterns**: phrases that repeat across files, from page headers, titles, opening lines
+   (like a school MLA heading) and names, become folders. `ENGLISH III` and `English 3`
+   count as the same; your own name is ignored.
+5. **Kinds of documents** inside a pattern: Essays, Notes, Glossaries, Study Guides,
+   Quizzes & Tests, Worksheets, Lab Reports, Syllabus, Invoices, Receipts, Statements,
+   Resumes and more. Anything else is split by things like `Unit 2` or `Chapter 5`.
+6. **Spreadsheets** with the same columns (repeat exports, like bank statements) go together.
+7. **Pictures**: Photos, Screenshots, RAW, GIFs, Graphics and other Images, then by year
+   and month; a day with lots of photos gets its own folder.
+8. **Duplicates**: exact copies go to `Duplicates`.
 
-## Safety
+Where things go: your usual Documents / Pictures / Videos / Music folders (it follows
+OneDrive on Windows and your folder settings on Linux). Archives, installers and other
+types without a usual home get tidy subfolders inside the folder you sorted.
 
-**Your files:**
+### What counts as suspicious
 
-- Preview is the default; nothing moves without `--apply`.
-- Never overwrites: name clashes become `name (1).ext`.
-- Every run writes an undo log (Windows `%LOCALAPPDATA%\file-organizer`, macOS
-  `~/Library/Application Support/file-organizer`, Linux `~/.local/state/file-organizer`).
-  `organize --undo` restores files and removes the folders it created.
-- Nothing is ever deleted, and nothing leaves your computer: the script makes no network calls.
-- Cloud-synced folders (OneDrive, Google Drive, Dropbox, iCloud, Box…) are left alone, and it
-  refuses to move files *into* one unless you pass `--allow-cloud`.
+Programs disguised as documents (`invoice.pdf` that's really an `.exe`), fake double
+extensions (`photo.jpg.exe`), hidden right-to-left characters in names; Office files with
+macros or that load a template from the internet; PDFs that launch programs, run scripts
+when opened, or hide programs inside; password-protected archives; archives with
+shortcut/script files; small disk-image files (`.iso`, `.img`); `.vbs`, `.hta`, `.lnk`
+and similar files that run when double-clicked; images with scripts; saved web pages with
+password forms. The website a flagged file came from is shown when your browser recorded
+it. On Mac and Linux, flagged files are made non-runnable (undo restores this).
 
-**Possibly-malicious downloads** are detected without opening or running them, set
-aside in `Needs Review/`, and (on macOS/Linux) have their execute permission removed:
+Undo history is kept in `%LOCALAPPDATA%\snag-all` (Windows),
+`~/Library/Application Support/snag-all` (Mac) or `~/.local/state/snag-all` (Linux).
 
-- programs disguised as documents (`invoice.pdf` that is really an `.exe`), double
-  extensions (`photo.jpg.exe`), hidden right-to-left characters in names
-- Office files with macros, or that load a template from the internet when opened
-- PDFs with JavaScript, launch actions or embedded files
-- password-protected archives (especially with programs inside), script and shortcut
-  files (`.js`, `.vbs`, `.hta`, `.lnk`…), disk images (`.iso`, `.img`), SVGs with scripts,
-  saved web pages with password forms
-- the download URL from your browser (Mark-of-the-Web) is shown alongside
-- `--av` also asks the local antivirus. `--json` includes each flagged file's SHA-256,
-  so you can look it up on VirusTotal without uploading the file.
+## Upgrading from the old Windows version
 
-These are tripwires for common tricks, not a replacement for antivirus. Downloads
-are parsed defensively (`defusedxml`, size caps against zip bombs).
-
-## Upgrading from v1 (Windows PowerShell version)
-
-v1 installed a Desktop icon and a `Ctrl+Alt+O` hotkey. Remove them with the old
-uninstaller (your sorted files are untouched), then install v2 as above:
+The first version installed a Desktop icon and a `Ctrl+Alt+O` shortcut. To remove them
+(your sorted files stay put), run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File legacy\Uninstall-v1.ps1
 ```
 
-## Customize
-
-Edit `src/file_organizer/classify.py` (`CATEGORIES`) to add file types, and
-`src/file_organizer/grouping.py` (`DOC_TYPES`) to add document types.
-
-## Develop
+## For developers
 
 ```bash
 uv sync
 uv run pytest
 ```
 
-See [docs/PROCESS.md](docs/PROCESS.md) for how this version was built.
+Add file types in `src/file_organizer/classify.py` (`CATEGORIES`) and document kinds in
+`src/file_organizer/grouping.py` (`DOC_TYPES`).
 
 ## License
 

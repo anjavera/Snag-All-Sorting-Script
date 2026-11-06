@@ -37,47 +37,6 @@ wheels = [
 ]
 
 [[package]]
-name = "file-organizer"
-version = "2.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "defusedxml" },
-    { name = "olefile" },
-    { name = "pillow", version = "12.3.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "pillow", version = "13.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "pypdf" },
-]
-
-[package.optional-dependencies]
-heic = [
-    { name = "pillow-heif" },
-]
-ocr = [
-    { name = "pypdfium2" },
-    { name = "pytesseract" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "defusedxml", specifier = ">=0.7" },
-    { name = "olefile", specifier = ">=0.46" },
-    { name = "pillow", specifier = ">=10.0" },
-    { name = "pillow-heif", marker = "extra == 'heic'", specifier = ">=0.16" },
-    { name = "pypdf", specifier = ">=4.0" },
-    { name = "pypdfium2", marker = "extra == 'ocr'", specifier = ">=4.0" },
-    { name = "pytesseract", marker = "extra == 'ocr'", specifier = ">=0.3.10" },
-]
-provides-extras = ["heic", "ocr"]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=8" }]
-
-[[package]]
 name = "iniconfig"
 version = "2.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -466,6 +425,47 @@ sdist = { url = "https://files.pythonhosted.org/packages/79/42/bb4641652e58dedea
 wheels = [
     { url = "https://files.pythonhosted.org/packages/51/39/1f5d8c8877a0fa327db959c19341d4be61660de1ab6b7391f9eb805bcd67/pytest-9.2.0-py3-none-any.whl", hash = "sha256:07acdcf88ec174f907dc01af70bf52d49b014bbab03faeeade31c96b18c2e588", size = 411776, upload-time = "2026-10-27T21:30:19.131Z" },
 ]
+
+[[package]]
+name = "snag-all"
+version = "2.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "defusedxml" },
+    { name = "olefile" },
+    { name = "pillow", version = "12.3.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "pillow", version = "13.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "pypdf" },
+]
+
+[package.optional-dependencies]
+heic = [
+    { name = "pillow-heif" },
+]
+ocr = [
+    { name = "pypdfium2" },
+    { name = "pytesseract" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "defusedxml", specifier = ">=0.7" },
+    { name = "olefile", specifier = ">=0.46" },
+    { name = "pillow", specifier = ">=10.0" },
+    { name = "pillow-heif", marker = "extra == 'heic'", specifier = ">=0.16" },
+    { name = "pypdf", specifier = ">=4.0" },
+    { name = "pypdfium2", marker = "extra == 'ocr'", specifier = ">=4.0" },
+    { name = "pytesseract", marker = "extra == 'ocr'", specifier = ">=0.3.10" },
+]
+provides-extras = ["heic", "ocr"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=8" }]
 
 [[package]]
 name = "tomli"

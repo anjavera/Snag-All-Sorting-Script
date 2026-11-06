@@ -381,7 +381,7 @@ def _doc_text(stream: bytes) -> list[str]:
     return [l for l in lines if l][:MAX_LINES]
 
 
-# --- OCR for scanned PDFs (optional: pip install file-organizer[ocr] + Tesseract) ----
+# --- OCR for scanned PDFs (optional: pip install snag-all[ocr] + Tesseract) ----
 
 def _ocr_first_page(path: Path) -> list[str]:
     try:

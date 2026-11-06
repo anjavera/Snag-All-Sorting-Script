@@ -117,13 +117,28 @@ def plan_json(plan: Plan, detail: str = "names") -> dict:
     }
 
 
+CREDIT = "Created by Opus 5.5 and Anjavera."
+
+
+def _confirm(n: int) -> bool:
+    """Ask before moving when a person is at the keyboard (scripts/assistants use --apply)."""
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        return False
+    try:
+        answer = input(f"\nMove these {n} file(s) now? Type y and press Enter (anything else cancels): ")
+    except EOFError:
+        return False
+    return answer.strip().lower() in ("y", "yes")
+
+
 def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(errors="replace")
     ap = argparse.ArgumentParser(
         prog="organize",
-        description="Organize a folder by date, file type, metadata and recurring patterns. "
-                    "Shows a preview unless --apply is given.",
+        description="Snag-All Sorting Script: a file organizer. Sorts a folder by date, type, and "
+                    "what's inside the files. Shows a preview first; nothing moves until you say yes.",
+        epilog=CREDIT,
     )
     ap.add_argument("source", nargs="?", type=Path, help="folder to organize (default: your Downloads)")
     ap.add_argument("--dest", type=Path, help="put everything under this folder instead of your "
@@ -157,7 +172,7 @@ def main(argv: list[str] | None = None) -> int:
                          "(used by the assistant workflow; still preview-first, undoable)")
     ap.add_argument("--undo", nargs="?", const="latest", metavar="LOG",
                     help="put back the files moved by the last run (or by LOG)")
-    ap.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    ap.add_argument("--version", action="version", version=f"Snag-All Sorting Script {__version__}. {CREDIT}")
     args = ap.parse_args(argv)
 
     if args.undo:
@@ -208,8 +223,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     print_plan(plan, args.explain)
 
-    if not args.apply:
-        print(f"\nPreview only: {len(plan.moves)} file(s) would move. Re-run with --apply to do it.")
+    if not args.apply and not _confirm(len(plan.moves)):
+        print(f"\nNothing has moved yet. {len(plan.moves)} file(s) are ready to sort; "
+              "run again and answer y (or add --apply) to move them.")
         return 0
     if plan.av_unscanned:
         print("\nNot moving anything: the antivirus scan you asked for didn't complete (see above).",
@@ -220,7 +236,7 @@ def main(argv: list[str] | None = None) -> int:
               "Use --dest or --allow-cloud.", file=sys.stderr)
         return 1
     log, moved, errors = apply(plan)
-    print(f"\nMoved {moved} file(s). Undo with:  organize --undo")
+    print(f"\nDone: moved {moved} file(s). Changed your mind? Use the Undo launcher, or run:  organize --undo")
     for e in errors:
         print(f"  ! {e}")
     return 0 if not errors else 2

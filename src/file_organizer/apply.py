@@ -20,7 +20,7 @@ def state_dir() -> Path:
         base = Path.home() / "Library" / "Application Support"
     else:
         base = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state"))
-    return base / "file-organizer"
+    return base / "snag-all"
 
 
 def apply(plan: Plan, log_dir: Path | None = None) -> tuple[Path, int, list[str]]:

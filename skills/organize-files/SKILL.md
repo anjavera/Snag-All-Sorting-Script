@@ -16,11 +16,11 @@ non-overwriting and undoable.
 Run `organize --version`. If it's missing, use it without installing:
 
 ```bash
-uvx --from git+https://github.com/anjavera/win-downloads-sorter organize --version
+uvx --from git+https://github.com/anjavera/Snag-All-Sorting-Script organize --version
 ```
 
 (Use that `uvx --from …` prefix wherever this skill says `organize`. If there's
-no `uv`, `pip install git+https://github.com/anjavera/win-downloads-sorter`.)
+no `uv`, `pip install git+https://github.com/anjavera/Snag-All-Sorting-Script`.)
 Keep plan files in a temp/scratch directory, never inside the folder being organized.
 
 ## 1. Ask the privacy questions FIRST, before reading anything
