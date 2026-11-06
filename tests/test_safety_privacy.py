@@ -236,7 +236,8 @@ def test_archives_and_disk_images(tmp_path: Path):
 def test_antivirus_fails_closed(downloads: Path, tmp_path: Path, monkeypatch, capsys):
     from file_organizer import safety
 
-    monkeypatch.setattr(safety, "antivirus", lambda paths: ({}, list(paths)))  # scanner errored
+    monkeypatch.setattr("file_organizer.cli.antivirus_available", lambda: "ClamAV")  # installed...
+    monkeypatch.setattr(safety, "antivirus", lambda paths: ({}, list(paths)))  # ...but it errored
     before = sorted(p.name for p in downloads.iterdir())
     assert main([str(downloads), "--dest", str(tmp_path / "o"), "--av", "--apply"]) == 1
     assert "didn't complete" in capsys.readouterr().out
