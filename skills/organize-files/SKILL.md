@@ -45,6 +45,9 @@ Ask in one round (AskUserQuestion). Default to the most private answer.
 
 Remember their answers for the whole session and repeat them back in one line.
 
+If they want their whole home folder sorted, use `organize --home` (add `-r` only if they want
+subfolders too; projects, installed programs, app/browser data and VMs are skipped automatically).
+
 ## 2. Preview with the script
 
 ```bash
