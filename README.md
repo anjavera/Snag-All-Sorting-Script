@@ -63,6 +63,7 @@ Python for you. `pip install git+https://github.com/anjavera/Snag-All-Sorting-Sc
 ```bash
 organize                 # preview your Downloads, then asks before moving anything
 organize ~/Desktop       # a different folder
+organize --home          # loose files in your home folder (add -r for its subfolders too)
 organize --explain       # also say why each file goes where it goes
 organize --apply         # move without asking (for scripts)
 organize --undo          # put everything from the last run back
@@ -71,7 +72,7 @@ organize --undo          # put everything from the last run back
 | Option | What it does |
 | --- | --- |
 | `--dest ~/Sorted` | put everything in one folder instead of your Documents / Pictures / Videos / Music |
-| `-r` | include files inside subfolders |
+| `-r` | include files inside subfolders. Code projects, installed programs, app and browser data, and virtual machines are always left exactly as they are |
 | `--exclude "Taxes*"` | never open or move matching files or folders (use as many times as you like) |
 | `--skip-type Pictures` | leave a whole kind of file alone |
 | `--include-cloud` | also sort inside OneDrive / Google Drive / Dropbox / iCloud folders |
@@ -124,6 +125,12 @@ and undo. Files that look private (taxes, IDs, bank, medical, passwords) are nev
 7. **Pictures**: Photos, Screenshots, RAW, GIFs, Graphics and other Images, then by year
    and month; a day with lots of photos gets its own folder.
 8. **Duplicates**: exact copies go to `Duplicates`.
+
+Sorting your whole home folder (`organize --home -r`) only touches your own files: folders that
+belong to code projects (git repos, `package.json`, `.py` files…), installed programs (a `LICENSE`,
+`bin`/`lib` folders, versioned names like `tool-1.2.3`), browser profiles, virtual machines, and app
+folders like `snap` are left exactly as they are. Archives, installers and other types without a
+usual home go into your Downloads folder instead of piling up in your home folder.
 
 Where things go: your usual Documents / Pictures / Videos / Music folders (it follows
 OneDrive on Windows and your folder settings on Linux). Archives, installers and other

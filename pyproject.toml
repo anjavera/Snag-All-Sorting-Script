@@ -1,6 +1,6 @@
 [project]
 name = "snag-all"
-version = "2.1.0"
+version = "2.2.0"
 description = "Cross-platform file organizer: chronological, metadata-aware, and pattern-grouping (e.g. 'English 3' -> Essays, Glossaries, Notes)."
 readme = "README.md"
 license = "MIT"
