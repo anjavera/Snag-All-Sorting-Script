@@ -10,7 +10,7 @@
       "name": "snag-all",
       "source": "./",
       "description": "Script-first file organizer with an assistant pass for leftovers, privacy controls and malware triage.",
-      "version": "2.1.0"
+      "version": "2.2.0"
     }
   ]
 }

@@ -141,6 +141,9 @@ def main(argv: list[str] | None = None) -> int:
         epilog=CREDIT,
     )
     ap.add_argument("source", nargs="?", type=Path, help="folder to organize (default: your Downloads)")
+    ap.add_argument("--home", action="store_true",
+                    help="organize loose files in your home folder (add -r to include its subfolders; "
+                         "code projects and app folders are always left as they are)")
     ap.add_argument("--dest", type=Path, help="put everything under this folder instead of your "
                                              "Documents/Pictures/Videos/Music folders")
     ap.add_argument("--apply", action="store_true", help="actually move the files")
@@ -186,7 +189,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  ! {e}")
         return 0 if not errors else 2
 
-    source = (args.source or default_source()).expanduser().resolve()
+    if args.home and args.source:
+        print("Use either --home or a folder, not both.", file=sys.stderr)
+        return 1
+    source = (Path.home() if args.home else args.source or default_source()).expanduser().resolve()
     if not source.is_dir():
         print(f"Folder not found: {source}", file=sys.stderr)
         return 1

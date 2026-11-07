@@ -173,7 +173,10 @@ def category_roots(source: Path, dest: Path | None) -> dict[str, Path]:
     if dest is not None:
         return {c: dest / c for c in [*CATEGORIES, *extra]}
     u = user_dirs()
-    roots = {c: source / c for c in [*CATEGORIES, *extra]}  # misc types tidy in place
+    # Types without a usual home (archives, installers, flagged files...) are tidied in place,
+    # except when sorting the home folder itself: then they go to Downloads, not across ~.
+    misc = u["DOWNLOAD"] if source.resolve() == Path.home().resolve() else source
+    roots = {c: misc / c for c in [*CATEGORIES, *extra]}
     roots.update({
         "Documents": u["DOCUMENTS"],
         "Spreadsheets": u["DOCUMENTS"] / "Spreadsheets",
@@ -184,6 +187,44 @@ def category_roots(source: Path, dest: Path | None) -> dict[str, Path]:
         "Audio": u["MUSIC"],
     })
     return roots
+
+
+# Folders that belong to a program, an installed tool, a browser profile or a code project:
+# their layout matters, so a recursive run never reaches inside them.
+PROJECT_MARKERS = {".git", ".hg", ".svn", "package.json", "pyproject.toml", "setup.py", "Cargo.toml",
+                   "go.mod", "pom.xml", "build.gradle", "CMakeLists.txt", "composer.json", "Gemfile",
+                   ".venv", "venv", "node_modules", ".vscode", ".idea", "Dockerfile",
+                   "docker-compose.yml", "compose.yaml", "requirements.txt", "Makefile", "CLAUDE.md",
+                   "AGENTS.md", "manifest.json", ".env"}
+SOFTWARE_MARKERS = {"license", "license.txt", "license.md", "copying", "third_party_licenses",
+                    "bin", "lib", "lib64", "dist", "site-packages", "unins000.exe"}
+PROFILE_MARKERS = {"prefs.js", "times.json", "compatibility.ini", "local state", "cookies.sqlite"}
+CODE_EXT = {".py", ".js", ".ts", ".jsx", ".tsx", ".c", ".cpp", ".h", ".java", ".go", ".rs", ".ps1",
+            ".sh", ".bat", ".ipynb", ".rb", ".php", ".cs", ".swift", ".kt", ".lua"}
+VM_EXT = {".vmx", ".vbox", ".vmdk", ".vdi", ".ovf", ".qcow2", ".vhdx"}
+VERSIONED = re.compile(r"[-_ ]v?\d+\.\d+(\.\d+)*([-_.][\w.]+)?$", re.I)  # "virtualbox-7.2.22", "tool_v1.0-linux"
+APP_DIRS = {"appdata", "library", "applications", "snap", "public", "templates", "go", "steam",
+            "virtualbox vms", "calibre library", "zotero", "miniconda3", "anaconda3", "lutris"}
+
+
+def protected_folder(folder: Path) -> str:
+    """Why a folder must be left exactly as it is, or '' if it's fine to sort inside."""
+    if folder.name.lower() in APP_DIRS:
+        return "app folder: left as it is"
+    try:
+        names = {p.name for p in folder.iterdir()}
+    except OSError:
+        return "can't read folder"
+    lower = {n.lower() for n in names}
+    if names & PROJECT_MARKERS or any(Path(n).suffix.lower() in CODE_EXT for n in names):
+        return "code project: left as it is"
+    if any(Path(n).suffix.lower() in VM_EXT for n in names):
+        return "virtual machine: left as it is"
+    if lower & PROFILE_MARKERS:
+        return "app data (browser profile): left as it is"
+    if lower & SOFTWARE_MARKERS or VERSIONED.search(folder.name):
+        return "installed program: left as it is"
+    return ""
 
 
 def default_source() -> Path:
@@ -238,6 +279,10 @@ def scan(source: Path, *, recursive: bool, exclude: list[Path], privacy: Privacy
             if entry.is_dir():
                 r = entry.resolve()
                 if not recursive or entry.is_symlink() or any(r == e or e in r.parents for e in excluded):
+                    continue
+                guard = protected_folder(entry)
+                if guard:
+                    skipped.append((entry, guard))
                     continue
                 service = cloud_service(r)
                 if service and not privacy.include_cloud:

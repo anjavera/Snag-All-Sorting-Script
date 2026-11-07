@@ -196,3 +196,38 @@ def test_asks_before_moving_when_run_by_a_person(downloads: Path, tmp_path: Path
     monkeypatch.setattr(cli.sys, "stdin", Tty("y\n"))
     assert main([str(downloads), "--dest", str(tmp_path / "o")]) == 0
     assert (tmp_path / "o" / "Documents" / "English 3").is_dir()
+
+
+def test_home_mode(tmp_path: Path, monkeypatch, capsys):
+    """--home sorts the runner's own home; projects/app folders untouched; misc types go to Downloads."""
+    from conftest import touch
+
+    home = tmp_path / "someone"
+    for d in ("Downloads", "Documents", "Work/site", "snap/app", "Notes"):
+        (home / d).mkdir(parents=True)
+    touch(home / "Work" / "site" / ".git", b"")  # a repo
+    touch(home / "Work" / "site" / "index.html", b"<html>")
+    touch(home / "snap" / "app" / "data.json", b"{}")
+    for d, marker in (("tools/ghidra", "LICENSE"), ("chrome-profile", "Local State"), ("scripts", "bot.py"),
+                      ("ai-app", "docker-compose.yml"), ("vms/kali", "kali.vmdk"), ("virtualbox-7.2.22", "notes.md")):
+        (home / d).mkdir(parents=True)
+        touch(home / d / marker, b"x")
+        touch(home / d / "readme.txt", b"keep me")
+    touch(home / "loose.pdf", b"%PDF-1.4")
+    touch(home / "backup.zip", b"PK\x05\x06" + b"\x00" * 18)
+    touch(home / "Notes" / "todo.txt", b"milk")
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "nocfg"))
+
+    plan = build_plan(home, recursive=True)
+    moved = {m.src.name: m.dst.relative_to(home).as_posix() for m in plan.moves}
+    assert moved["loose.pdf"].startswith("Documents/")
+    assert moved["backup.zip"].startswith("Downloads/Archives/")
+    assert moved["todo.txt"].startswith("Documents/")
+    assert "index.html" not in moved and "data.json" not in moved and "readme.txt" not in moved
+    reasons = {p.name: r for p, r in plan.skipped}
+    assert reasons["site"] == "code project: left as it is" and reasons["snap"] == "app folder: left as it is"
+
+    assert main(["--home", "-r"]) == 0 and "loose.pdf" in capsys.readouterr().out
+    assert main(["--home", str(home)]) == 1
